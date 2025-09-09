@@ -8,9 +8,9 @@ config({
 export default defineConfig({
   schema: './lib/db/schema.ts',
   out: './lib/db/migrations',
-  dialect: 'postgresql',
+  dialect: 'turso',
   dbCredentials: {
-    // biome-ignore lint: Forbidden non-null assertion.
-    url: process.env.POSTGRES_URL!,
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN,
   },
 });

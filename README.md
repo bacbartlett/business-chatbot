@@ -36,15 +36,17 @@
 
 ## Model Providers
 
-This template uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to access multiple AI models through a unified interface. The default configuration includes [xAI](https://x.ai) models (`grok-2-vision-1212`, `grok-3-mini-beta`) routed through the gateway.
+This template is configured to use [OpenRouter](https://openrouter.ai) via the [AI SDK](https://ai-sdk.dev/docs/introduction), giving access to many models from different providers through a single API.
 
-### AI Gateway Authentication
+### OpenRouter Authentication
 
-**For Vercel deployments**: Authentication is handled automatically via OIDC tokens.
+Set the `OPENROUTER_API_KEY` environment variable in your `.env.local` (or project environment) to authenticate requests:
 
-**For non-Vercel deployments**: You need to provide an AI Gateway API key by setting the `AI_GATEWAY_API_KEY` environment variable in your `.env.local` file.
+```bash
+OPENROUTER_API_KEY=your_key_here
+```
 
-With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can also switch to direct LLM providers like [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://ai-sdk.dev/providers/ai-sdk-providers) with just a few lines of code.
+You can change the specific model slugs used in `lib/ai/providers.ts` to suit your needs (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3.7-sonnet:thinking`, or `openrouter/auto`).
 
 ## Deploy Your Own
 
@@ -54,7 +56,14 @@ You can deploy your own version of the Next.js AI Chatbot to Vercel with one cli
 
 ## Running locally
 
-You will need to use the environment variables [defined in `.env.example`](.env.example) to run Next.js AI Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
+You will need to set the following environment variables for the database (Turso/libSQL):
+
+```bash
+TURSO_DATABASE_URL=libsql://<your-db>.turso.io
+TURSO_AUTH_TOKEN=<your_db_token>
+```
+
+It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env.local` file is all that is necessary.
 
 > Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
 

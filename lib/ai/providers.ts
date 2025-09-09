@@ -3,7 +3,7 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+import { openrouter, createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
   artifactModel,
   chatModel,
@@ -23,12 +23,24 @@ export const myProvider = isTestEnvironment
     })
   : customProvider({
       languageModels: {
-        'chat-model': gateway.languageModel('xai/grok-2-vision-1212'),
+        // Use OpenRouter models; adjust slugs as desired
+        // Default chat model should support tools
+        'chat-model': openrouter('openai/gpt-4o'),
         'chat-model-reasoning': wrapLanguageModel({
-          model: gateway.languageModel('xai/grok-3-mini-beta'),
+          model: openrouter('anthropic/claude-3.7-sonnet:thinking'),
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
-        'title-model': gateway.languageModel('xai/grok-2-1212'),
-        'artifact-model': gateway.languageModel('xai/grok-2-1212'),
+        'title-model': openrouter('openai/gpt-4o-mini'),
+        'artifact-model': openrouter('openai/gpt-4o-mini'),
+
+        // Additional selectable models
+        'model-claude-sonnet': openrouter('anthropic/claude-3.7-sonnet'),
+        'model-gemini-flash': openrouter('google/gemini-2.0-flash-001'),
+        'model-gpt-4o': openrouter('openai/gpt-4o'),
+        'model-llama-70b': openrouter('meta-llama/llama-3.1-70b-instruct'),
+        // Reasoning alternative from OpenAI (ensure availability if selected in UI)
+        'model-o3-mini': openrouter('openai/o3-mini'),
+        // Auto router as a catch-all (may not support tools in all cases)
+        'model-auto': openrouter('openrouter/auto'),
       },
     });

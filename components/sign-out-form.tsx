@@ -1,17 +1,16 @@
-import Form from 'next/form';
+'use client';
 
-import { signOut } from '@/app/(auth)/auth';
+import Form from 'next/form';
+import { useClerk } from '@clerk/nextjs';
 
 export const SignOutForm = () => {
+  const { signOut } = useClerk();
   return (
     <Form
       className="w-full"
       action={async () => {
         'use server';
-
-        await signOut({
-          redirectTo: '/',
-        });
+        signOut({ redirectUrl: '/' });
       }}
     >
       <button

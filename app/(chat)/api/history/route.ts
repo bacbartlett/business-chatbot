@@ -1,4 +1,4 @@
-import { auth } from '@/app/(auth)/auth';
+import { auth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 import { getChatsByUserId } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const { userId } = await auth();
 
-  if (!session?.user) {
+  if (!userId) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
   const chats = await getChatsByUserId({
-    id: session.user.id,
+    id: userId,
     limit,
     startingAfter,
     endingBefore,

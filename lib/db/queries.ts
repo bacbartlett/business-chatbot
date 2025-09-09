@@ -12,8 +12,8 @@ import {
   lt,
   type SQL,
 } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 
 import {
   user,
@@ -39,7 +39,11 @@ import { ChatSDKError } from '../errors';
 // https://authjs.dev/reference/adapter/drizzle
 
 // biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
+const client = createClient({
+  // TURSO_DATABASE_URL example: libsql://your-db-username-your-db-name.turso.io
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 const db = drizzle(client);
 
 export async function getUser(email: string): Promise<Array<User>> {

@@ -1,1 +1,2 @@
-export { GET, POST } from '@/app/(auth)/auth';
+export const GET = undefined as never;
+export const POST = undefined as never;

@@ -1,19 +1,22 @@
 import { config } from 'dotenv';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/libsql';
+import { migrate } from 'drizzle-orm/libsql/migrator';
+import { createClient } from '@libsql/client';
 
 config({
   path: '.env.local',
 });
 
 const runMigrate = async () => {
-  if (!process.env.POSTGRES_URL) {
-    throw new Error('POSTGRES_URL is not defined');
+  if (!process.env.TURSO_DATABASE_URL) {
+    throw new Error('TURSO_DATABASE_URL is not defined');
   }
 
-  const connection = postgres(process.env.POSTGRES_URL, { max: 1 });
-  const db = drizzle(connection);
+  const client = createClient({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  const db = drizzle(client);
 
   console.log('⏳ Running migrations...');
 

@@ -6,7 +6,8 @@ import {
   stepCountIs,
   streamText,
 } from 'ai';
-import { auth, type UserType } from '@/app/(auth)/auth';
+import { auth } from '@clerk/nextjs/server';
+import type { UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
 import {
   createStreamId,
@@ -45,17 +46,14 @@ let globalStreamContext: ResumableStreamContext | null = null;
 export function getStreamContext() {
   if (!globalStreamContext) {
     try {
+      if (!process.env.REDIS_URL) {
+        return null;
+      }
       globalStreamContext = createResumableStreamContext({
         waitUntil: after,
       });
     } catch (error: any) {
-      if (error.message.includes('REDIS_URL')) {
-        console.log(
-          ' > Resumable streams are disabled due to missing REDIS_URL',
-        );
-      } else {
-        console.error(error);
-      }
+      return null;
     }
   }
 
@@ -85,16 +83,15 @@ export async function POST(request: Request) {
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 
-    const session = await auth();
+    const { userId } = await auth();
 
-    if (!session?.user) {
+    if (!userId) {
       return new ChatSDKError('unauthorized:chat').toResponse();
     }
-
-    const userType: UserType = session.user.type;
+    const userType: UserType = 'regular';
 
     const messageCount = await getMessageCountByUserId({
-      id: session.user.id,
+      id: userId,
       differenceInHours: 24,
     });
 
@@ -111,12 +108,12 @@ export async function POST(request: Request) {
 
       await saveChat({
         id,
-        userId: session.user.id,
+        userId,
         title,
         visibility: selectedVisibilityType,
       });
     } else {
-      if (chat.userId !== session.user.id) {
+      if (chat.userId !== userId) {
         return new ChatSDKError('forbidden:chat').toResponse();
       }
     }
@@ -168,10 +165,10 @@ export async function POST(request: Request) {
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
             getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
+            createDocument: createDocument({ session: { user: { id: userId } } as any, dataStream }),
+            updateDocument: updateDocument({ session: { user: { id: userId } } as any, dataStream }),
             requestSuggestions: requestSuggestions({
-              session,
+              session: { user: { id: userId } } as any,
               dataStream,
             }),
           },
@@ -236,15 +233,15 @@ export async function DELETE(request: Request) {
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
-  const session = await auth();
+  const { userId } = await auth();
 
-  if (!session?.user) {
+  if (!userId) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
   const chat = await getChatById({ id });
 
-  if (chat.userId !== session.user.id) {
+  if (chat.userId !== userId) {
     return new ChatSDKError('forbidden:chat').toResponse();
   }
 
