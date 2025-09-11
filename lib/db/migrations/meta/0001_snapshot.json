@@ -1,0 +1,29 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "0001_file_upload",
+  "prevId": "00e24eba-db79-4e19-8269-0618022a3137",
+  "tables": {
+    "FileUpload": {
+      "name": "FileUpload",
+      "columns": {
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "userId": { "name": "userId", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "filename": { "name": "filename", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "pathname": { "name": "pathname", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "url": { "name": "url", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "contentType": { "name": "contentType", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "size": { "name": "size", "type": "integer", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "createdAt": { "name": "createdAt", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(unixepoch())" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "_meta": { "schemas": {}, "tables": {}, "columns": {} },
+  "internal": { "indexes": {} }
+}
+

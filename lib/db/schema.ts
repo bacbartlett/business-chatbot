@@ -4,6 +4,7 @@ import {
   text as sqliteText,
   integer,
   primaryKey,
+  blob,
 } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
@@ -149,3 +150,29 @@ export const stream = sqliteTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const fileUpload = sqliteTable(
+  'FileUpload',
+  {
+    id: sqliteText('id').primaryKey().notNull(),
+    userId: sqliteText('userId').notNull(),
+    filename: sqliteText('filename').notNull(),
+    pathname: sqliteText('pathname').notNull(),
+    url: sqliteText('url').notNull(),
+    contentType: sqliteText('contentType'),
+    size: integer('size'),
+    data: blob('data', { mode: 'buffer' }),
+    createdAt: integer('createdAt', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+);
+
+export type FileUpload = InferSelectModel<typeof fileUpload>;
+
+export const masterPrompt = sqliteTable('MasterPrompt', {
+  userId: sqliteText('userId').primaryKey().notNull(),
+  masterPrompt: sqliteText('masterPrompt'),
+});
+
+export type MasterPrompt = InferSelectModel<typeof masterPrompt>;

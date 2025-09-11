@@ -17,6 +17,7 @@ import {
   getMessagesByChatId,
   saveChat,
   saveMessages,
+  getMasterPromptByUserId,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
@@ -121,6 +122,91 @@ export async function POST(request: Request) {
     const messagesFromDb = await getMessagesByChatId({ id });
     const uiMessages = [...convertToUIMessages(messagesFromDb), message];
 
+    // Transform file parts for provider compatibility:
+    // - images: leave as URL
+    // - PDFs: convert to data URL (or use plugin when enabled)
+    // - text/plain, text/csv, application/json: inline as text content
+    // - others (docx/xlsx/etc.): fallback to a text note with link
+    async function transformFilePart(p: any): Promise<any> {
+      const mediaType: string = p.mediaType ?? '';
+      const url: string = p.url ?? '';
+      const name: string = p.name ?? 'file';
+
+      if (mediaType.startsWith('image/')) {
+        return p;
+      }
+
+      if (mediaType === 'application/pdf') {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return p;
+          const arrayBuffer = await res.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          return { ...p, url: `data:${mediaType};base64,${base64}` };
+        } catch {
+          return p;
+        }
+      }
+
+      const isTextLike =
+        mediaType === 'text/plain' ||
+        mediaType === 'text/csv' ||
+        mediaType === 'application/json';
+
+      if (isTextLike) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            return { type: 'text', text: `Attached file: ${name} (${mediaType}) at ${url}` };
+          }
+          const text = await res.text();
+          const truncated = text.length > 200_000 ? text.slice(0, 200_000) + '\n...[truncated]...' : text;
+          const fence = mediaType === 'text/csv' ? 'csv' : mediaType === 'application/json' ? 'json' : '';
+          const body = fence ? `\n\n\`\`\`${fence}\n${truncated}\n\`\`\`` : `\n\n${truncated}`;
+          return { type: 'text', text: `File: ${name}${body}` };
+        } catch {
+          return { type: 'text', text: `Attached file: ${name} (${mediaType}) at ${url}` };
+        }
+      }
+
+      // Fallback for unsupported types
+      return { type: 'text', text: `Attached file: ${name} (${mediaType}) at ${url}` };
+    }
+
+    const uiMessagesForProvider = await Promise.all(
+      uiMessages.map(async (m) => ({
+        ...m,
+        parts: await Promise.all(
+          m.parts.map(async (p: any) => {
+            if (p?.type === 'file' && typeof p.url === 'string' && p.mediaType) {
+              return await transformFilePart(p);
+            }
+            return p;
+          }),
+        ),
+      })),
+    );
+
+    const includesPdf = uiMessagesForProvider.some((m: any) =>
+      Array.isArray(m.parts) && m.parts.some((p: any) => p?.type === 'file' && p.mediaType === 'application/pdf'),
+    );
+    const pdfEngine = process.env.OPENROUTER_PDF_ENGINE ?? 'pdf-text';
+    const enableFileParser = process.env.OPENROUTER_FILE_PARSER === 'true';
+    const providerOptions = includesPdf && enableFileParser
+      ? {
+          openrouter: {
+            plugins: [
+              {
+                id: 'file-parser',
+                pdf: {
+                  engine: pdfEngine,
+                },
+              },
+            ],
+          },
+        }
+      : undefined;
+
     const { longitude, latitude, city, country } = geolocation(request);
 
     const requestHints: RequestHints = {
@@ -146,12 +232,14 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
+    const master = await getMasterPromptByUserId({ userId });
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages: convertToModelMessages(uiMessages),
+          system: systemPrompt({ selectedChatModel, requestHints, masterPrompt: master?.masterPrompt ?? null }),
+          messages: convertToModelMessages(uiMessagesForProvider),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
             selectedChatModel === 'chat-model-reasoning'
@@ -163,6 +251,7 @@ export async function POST(request: Request) {
                   'requestSuggestions',
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
+          providerOptions,
           tools: {
             getWeather,
             createDocument: createDocument({ session: { user: { id: userId } } as any, dataStream }),

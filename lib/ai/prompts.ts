@@ -53,16 +53,21 @@ About the origin of user's request:
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  masterPrompt,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  masterPrompt?: string | null;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  const master = masterPrompt?.trim()
+    ? `\n\nMaster prompt (user-provided context):\n${masterPrompt}`
+    : '';
 
   if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${regularPrompt}${master}\n\n${requestPrompt}`;
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+    return `${regularPrompt}${master}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
   }
 };
 

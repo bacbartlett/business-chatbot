@@ -27,6 +27,9 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  fileUpload,
+  masterPrompt,
+  type MasterPrompt,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -537,6 +540,94 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+export async function saveFileUpload({
+  id,
+  userId,
+  filename,
+  pathname,
+  url,
+  contentType,
+  size,
+  data,
+}: {
+  id: string;
+  userId: string;
+  filename: string;
+  pathname: string;
+  url: string;
+  contentType?: string | null;
+  size?: number | null;
+  data?: Uint8Array | Buffer | null;
+}) {
+  try {
+    return await db.insert(fileUpload).values({
+      id,
+      userId,
+      filename,
+      pathname,
+      url,
+      contentType: contentType ?? null,
+      size: size ?? null,
+      data: data ?? null,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to save file upload');
+  }
+}
+
+export async function getFileUploadById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    const [file] = await db
+      .select()
+      .from(fileUpload)
+      .where(and(eq(fileUpload.id, id), eq(fileUpload.userId, userId)))
+      .limit(1);
+    return file;
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to get file upload');
+  }
+}
+
+export async function getFileUploadPublicById({ id }: { id: string }) {
+  try {
+    const [file] = await db
+      .select()
+      .from(fileUpload)
+      .where(eq(fileUpload.id, id))
+      .limit(1);
+    return file;
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to get file upload');
+  }
+}
+
+export async function getMasterPromptByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<MasterPrompt | undefined> {
+  try {
+    const [row] = await db
+      .select()
+      .from(masterPrompt)
+      .where(eq(masterPrompt.userId, userId))
+      .limit(1);
+    return row;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get master prompt by user id',
     );
   }
 }
