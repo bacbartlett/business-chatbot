@@ -10,7 +10,8 @@ import { sql } from 'drizzle-orm';
 
 export const user = sqliteTable('User', {
   id: sqliteText('id').primaryKey().notNull(),
-  email: sqliteText('email').notNull(),
+  email: sqliteText('email'),
+  name: sqliteText('name'),
   password: sqliteText('password'),
 });
 
@@ -22,7 +23,7 @@ export const chat = sqliteTable('Chat', {
     .notNull()
     .default(sql`(unixepoch())`),
   title: sqliteText('title').notNull(),
-  userId: sqliteText('userId').notNull(),
+  userId: sqliteText('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
   visibility: sqliteText('visibility')
     .notNull()
     .default('private'),
@@ -30,19 +31,7 @@ export const chat = sqliteTable('Chat', {
 
 export type Chat = InferSelectModel<typeof chat>;
 
-// DEPRECATED: The following schema is deprecated and will be removed in the future.
-// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
-export const messageDeprecated = sqliteTable('Message', {
-  id: sqliteText('id').primaryKey().notNull(),
-  chatId: sqliteText('chatId').notNull(),
-  role: sqliteText('role').notNull(),
-  content: sqliteText('content', { mode: 'json' }).notNull(),
-  createdAt: integer('createdAt', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
-export type MessageDeprecated = InferSelectModel<typeof messageDeprecated>;
+// Messages schema (v2)
 
 export const message = sqliteTable('Message_v2', {
   id: sqliteText('id').primaryKey().notNull(),
@@ -57,23 +46,7 @@ export const message = sqliteTable('Message_v2', {
 
 export type DBMessage = InferSelectModel<typeof message>;
 
-// DEPRECATED: The following schema is deprecated and will be removed in the future.
-// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
-export const voteDeprecated = sqliteTable(
-  'Vote',
-  {
-    chatId: sqliteText('chatId').notNull(),
-    messageId: sqliteText('messageId').notNull(),
-    isUpvoted: integer('isUpvoted', { mode: 'boolean' }).notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
-  },
-);
-
-export type VoteDeprecated = InferSelectModel<typeof voteDeprecated>;
+// Votes schema (v2)
 
 export const vote = sqliteTable(
   'Vote_v2',
@@ -101,7 +74,7 @@ export const document = sqliteTable(
     title: sqliteText('title').notNull(),
     content: sqliteText('content'),
     kind: sqliteText('text').notNull().default('text'),
-    userId: sqliteText('userId').notNull(),
+    userId: sqliteText('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
   },
   (table) => {
     return {
@@ -123,7 +96,7 @@ export const suggestion = sqliteTable(
     suggestedText: sqliteText('suggestedText').notNull(),
     description: sqliteText('description'),
     isResolved: integer('isResolved', { mode: 'boolean' }).notNull().default(false),
-    userId: sqliteText('userId').notNull(),
+    userId: sqliteText('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     createdAt: integer('createdAt', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -155,7 +128,7 @@ export const fileUpload = sqliteTable(
   'FileUpload',
   {
     id: sqliteText('id').primaryKey().notNull(),
-    userId: sqliteText('userId').notNull(),
+    userId: sqliteText('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     filename: sqliteText('filename').notNull(),
     pathname: sqliteText('pathname').notNull(),
     url: sqliteText('url').notNull(),
@@ -171,7 +144,7 @@ export const fileUpload = sqliteTable(
 export type FileUpload = InferSelectModel<typeof fileUpload>;
 
 export const masterPrompt = sqliteTable('MasterPrompt', {
-  userId: sqliteText('userId').primaryKey().notNull(),
+  userId: sqliteText('userId').primaryKey().notNull().references(() => user.id, { onDelete: 'cascade' }),
   masterPrompt: sqliteText('masterPrompt'),
 });
 

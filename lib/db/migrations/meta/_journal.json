@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1757389013488,
-      "tag": "0000_good_bishop",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1757600000000,
-      "tag": "0001_file_upload",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "8",
-      "when": 1757600001000,
-      "tag": "0002_file_upload_blob",
+      "when": 1757697089349,
+      "tag": "0000_stiff_joseph",
       "breakpoints": true
     }
   ]

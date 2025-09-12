@@ -6,7 +6,7 @@ import {
   stepCountIs,
   streamText,
 } from 'ai';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import type { UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
 import {
@@ -84,11 +84,21 @@ export async function POST(request: Request) {
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 
-    const { userId } = await auth();
+    const session = await auth();
+    const userId = session.userId;
 
     if (!userId) {
       return new ChatSDKError('unauthorized:chat').toResponse();
     }
+    // Ensure user exists in our DB for FK integrity
+    // Imported lazily to keep this file's imports minimal
+    const user = await currentUser();
+    const email = user?.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress
+      ?? user?.emailAddresses?.[0]?.emailAddress
+      ?? null;
+    const name = user ? ([user.firstName, user.lastName].filter(Boolean).join(' ') || (user as any).fullName || user.username || null) : null;
+    const { ensureUserExists } = await import('@/lib/db/queries');
+    await ensureUserExists({ id: userId, email, name });
     const userType: UserType = 'regular';
 
     const messageCount = await getMessageCountByUserId({

@@ -49,6 +49,42 @@ const client = createClient({
 });
 const db = drizzle(client);
 
+/**
+ * Ensure a Clerk user exists in our `User` table.
+ * - Inserts a row with id only when missing (email/password optional).
+ * - Safe to call on every request that uses userId.
+ */
+export async function ensureUserExists({
+  id,
+  email,
+  name,
+}: {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+}): Promise<void> {
+  try {
+    // Try insert; ignore if already exists
+    await db
+      .insert(user)
+      .values({ id, email: email ?? null, name: name ?? null })
+      .onConflictDoNothing({ target: user.id });
+
+    // If we have new profile info, update existing row without throwing
+    if (email ?? name) {
+      await db
+        .update(user)
+        .set({
+          ...(email ? { email } : {}),
+          ...(name ? { name } : {}),
+        })
+        .where(eq(user.id, id));
+    }
+  } catch (error) {
+    // Intentionally swallow to avoid noisy errors on races
+  }
+}
+
 export async function getUser(email: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
@@ -99,6 +135,7 @@ export async function saveChat({
   visibility: VisibilityType;
 }) {
   try {
+    await ensureUserExists({ id: userId });
     return await db.insert(chat).values({
       id,
       createdAt: new Date(),
@@ -298,6 +335,7 @@ export async function saveDocument({
   userId: string;
 }) {
   try {
+    await ensureUserExists({ id: userId });
     return await db
       .insert(document)
       .values({
@@ -383,6 +421,9 @@ export async function saveSuggestions({
   suggestions: Array<Suggestion>;
 }) {
   try {
+    // Ensure all suggestion users exist (most will have the same userId)
+    const uniqueUserIds = Array.from(new Set(suggestions.map((s) => s.userId)));
+    await Promise.all(uniqueUserIds.map((id) => ensureUserExists({ id })));
     return await db.insert(suggestion).values(suggestions);
   } catch (error) {
     throw new ChatSDKError(
@@ -564,6 +605,7 @@ export async function saveFileUpload({
   data?: Uint8Array | Buffer | null;
 }) {
   try {
+    await ensureUserExists({ id: userId });
     return await db.insert(fileUpload).values({
       id,
       userId,
@@ -618,6 +660,7 @@ export async function getMasterPromptByUserId({
   userId: string;
 }): Promise<MasterPrompt | undefined> {
   try {
+    await ensureUserExists({ id: userId });
     const [row] = await db
       .select()
       .from(masterPrompt)
