@@ -3,14 +3,13 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { openrouter, createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
   artifactModel,
   chatModel,
   reasoningModel,
   titleModel,
 } from './models.test';
-import { isTestEnvironment } from '../constants';
 
 // Configure a dedicated OpenRouter client with API key and attribution headers
 const openrouterClient = createOpenRouter({
@@ -28,7 +27,10 @@ console.log('[OpenRouter] Client initialized', {
   appName: process.env.OPENROUTER_APP_NAME || null,
 });
 
-export const myProvider = false
+// Toggle between test models and OpenRouter via env to avoid constant conditions
+const useTestModels = process.env.USE_TEST_MODELS === 'true';
+
+export const myProvider = useTestModels
   ? customProvider({
       languageModels: {
         'chat-model': chatModel,

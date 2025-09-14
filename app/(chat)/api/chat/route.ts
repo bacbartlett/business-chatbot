@@ -180,7 +180,7 @@ export async function POST(request: Request) {
             return { type: 'text', text: `Attached file: ${name} (${mediaType}) at ${url}` };
           }
           const text = await res.text();
-          const truncated = text.length > 200_000 ? text.slice(0, 200_000) + '\n...[truncated]...' : text;
+          const truncated = text.length > 200_000 ? `${text.slice(0, 200_000)}\n...[truncated]...` : text;
           const fence = mediaType === 'text/csv' ? 'csv' : mediaType === 'application/json' ? 'json' : '';
           const body = fence ? `\n\n\`\`\`${fence}\n${truncated}\n\`\`\`` : `\n\n${truncated}`;
           return { type: 'text', text: `File: ${name}${body}` };

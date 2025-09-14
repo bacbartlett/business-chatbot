@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { createUser, getUser } from '@/lib/db/queries';
 
-import { signIn } from './auth';
+// NextAuth has been removed; Clerk handles authentication via UI components.
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -23,12 +23,6 @@ export const login = async (
     const validatedData = authFormSchema.parse({
       email: formData.get('email'),
       password: formData.get('password'),
-    });
-
-    await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
     });
 
     return { status: 'success' };
@@ -67,11 +61,6 @@ export const register = async (
       return { status: 'user_exists' } as RegisterActionState;
     }
     await createUser(validatedData.email, validatedData.password);
-    await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
-    });
 
     return { status: 'success' };
   } catch (error) {

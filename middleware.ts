@@ -1,9 +1,6 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
-export default clerkMiddleware({
-  publicRoutes: ['/ping'],
-  ignoredRoutes: ['/favicon.ico', '/sitemap.xml', '/robots.txt', '/_next/(.*)'],
-});
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

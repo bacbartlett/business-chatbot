@@ -10,7 +10,14 @@ export default defineConfig({
   out: './lib/db/migrations',
   dialect: 'turso',
   dbCredentials: {
-    url: process.env.TURSO_DATABASE_URL!,
+    // Validate at config time to avoid non-null assertions
+    url: (() => {
+      const databaseUrl = process.env.TURSO_DATABASE_URL;
+      if (!databaseUrl) {
+        throw new Error('TURSO_DATABASE_URL is not defined');
+      }
+      return databaseUrl;
+    })(),
     authToken: process.env.TURSO_AUTH_TOKEN,
   },
 });

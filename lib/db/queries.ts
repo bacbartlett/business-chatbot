@@ -10,6 +10,7 @@ import {
   gte,
   inArray,
   lt,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
@@ -44,10 +45,13 @@ import { DEFAULT_SUGGESTED_PROMPTS } from '../constants';
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 
-// biome-ignore lint: Forbidden non-null assertion.
+const databaseUrl = process.env.TURSO_DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('TURSO_DATABASE_URL is not defined');
+}
 const client = createClient({
   // TURSO_DATABASE_URL example: libsql://your-db-username-your-db-name.turso.io
-  url: process.env.TURSO_DATABASE_URL!,
+  url: databaseUrl,
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 const db = drizzle(client);
@@ -103,7 +107,7 @@ export async function createUser(email: string, password: string) {
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    return await db.insert(user).values({ id: generateUUID(), email, password: hashedPassword });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to create user');
   }
@@ -112,9 +116,10 @@ export async function createUser(email: string, password: string) {
 export async function createGuestUser() {
   const email = `guest-${Date.now()}`;
   const password = generateHashedPassword(generateUUID());
+  const id = generateUUID();
 
   try {
-    return await db.insert(user).values({ email, password }).returning({
+    return await db.insert(user).values({ id, email, password }).returning({
       id: user.id,
       email: user.email,
     });
@@ -617,7 +622,9 @@ export async function saveFileUpload({
       url,
       contentType: contentType ?? null,
       size: size ?? null,
-      data: data ?? null,
+      data: data
+        ? (data instanceof Uint8Array ? Buffer.from(data) : data)
+        : null,
       createdAt: new Date(),
     });
   } catch (error) {

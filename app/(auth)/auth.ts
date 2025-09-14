@@ -1,32 +1,14 @@
 // Deprecated: kept for legacy types only. Clerk is used now.
 export type UserType = 'guest' | 'regular';
 
-export type UserType = 'guest' | 'regular';
-
-declare module 'next-auth' {
-  interface Session extends DefaultSession {
-    user: {
-      id: string;
-      type: UserType;
-    } & DefaultSession['user'];
-  }
-
-  interface User {
+// Local Session type used throughout the app instead of next-auth
+export interface Session {
+  user?: {
     id?: string;
+    type?: UserType;
+    name?: string | null;
     email?: string | null;
-    type: UserType;
-  }
+    image?: string | null;
+  } | null;
+  expires?: string;
 }
-
-declare module 'next-auth/jwt' {
-  interface JWT extends DefaultJWT {
-    id: string;
-    type: UserType;
-  }
-}
-
-export const auth = undefined as never;
-export const signIn = undefined as never;
-export const signOut = undefined as never;
-export const GET = undefined as never;
-export const POST = undefined as never;

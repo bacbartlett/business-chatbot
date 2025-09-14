@@ -1,5 +1,4 @@
 'use client';
-import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import type { Vote } from '@/lib/db/schema';
@@ -269,7 +268,11 @@ const PurePreviewMessage = ({
                             ) : (
                               <DocumentToolResult
                                 type="request-suggestions"
-                                result={part.output}
+                                result={{
+                                  id: part.output.id,
+                                  title: part.output.title,
+                                  kind: part.output.kind as any,
+                                }}
                                 isReadonly={isReadonly}
                               />
                             )
@@ -283,7 +286,7 @@ const PurePreviewMessage = ({
               }
 
               // Exa tools: show clear feedback that the web is being searched
-              if (type === 'tool-exaSearch' || type === 'tool-exaCrawl' || type === 'tool-exaAnswer') {
+              if ((type as any) === 'tool-exaSearch' || (type as any) === 'tool-exaCrawl' || (type as any) === 'tool-exaAnswer') {
                 const { toolCallId, state } = part as any;
 
                 return (
@@ -303,9 +306,9 @@ const PurePreviewMessage = ({
                               <div className="p-2 text-red-500 rounded border">
                                 Error: {String((part as any).output.error)}
                               </div>
-                            ) : type === 'tool-exaAnswer' ? (
+                            ) : (type as any) === 'tool-exaAnswer' ? (
                               <ExaAnswerResult result={(part as any).output} />
-                            ) : type === 'tool-exaSearch' ? (
+                            ) : (type as any) === 'tool-exaSearch' ? (
                               <ExaSearchResults result={(part as any).output} />
                             ) : (
                               <ExaCrawlResults result={(part as any).output} />
