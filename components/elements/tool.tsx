@@ -17,7 +17,6 @@ import {
   XCircleIcon,
 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
-import { CodeBlock } from './code-block';
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -72,7 +71,15 @@ export const ToolHeader = ({
   >
     <div className="flex items-center gap-2 min-w-0 flex-1">
       <WrenchIcon className="size-4 text-muted-foreground shrink-0" />
-      <span className="font-medium text-sm truncate">{type}</span>
+      <span className="font-medium text-sm truncate">{
+        type === 'tool-exaSearch'
+          ? 'Web search'
+          : type === 'tool-exaCrawl'
+            ? 'Fetching pages'
+            : type === 'tool-exaAnswer'
+              ? 'Answer from the web'
+              : (type as string)
+      }</span>
     </div>
     <div className="flex items-center gap-2 shrink-0">
       {getStatusBadge(state)}
@@ -97,16 +104,7 @@ export type ToolInputProps = ComponentProps<'div'> & {
   input: ToolUIPart['input'];
 };
 
-export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn('space-y-2 overflow-hidden p-4', className)} {...props}>
-    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      Parameters
-    </h4>
-    <div className="rounded-md bg-muted/50">
-      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
-    </div>
-  </div>
-);
+export const ToolInput = (_props: ToolInputProps) => null;
 
 export type ToolOutputProps = ComponentProps<'div'> & {
   output: ReactNode;

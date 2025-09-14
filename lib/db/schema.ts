@@ -149,3 +149,13 @@ export const masterPrompt = sqliteTable('MasterPrompt', {
 });
 
 export type MasterPrompt = InferSelectModel<typeof masterPrompt>;
+
+export const suggestedPrompt = sqliteTable('SuggestedPrompts', {
+  id: integer('id').primaryKey(),
+  text: sqliteText('text').notNull(),
+  userId: sqliteText('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+});
+
+export type SuggestedPrompt = InferSelectModel<typeof suggestedPrompt>;

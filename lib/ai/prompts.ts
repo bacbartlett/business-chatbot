@@ -33,7 +33,7 @@ Do not update document right after creating it. Wait for user feedback or reques
 `;
 
 export const regularPrompt =
-  'You are a friendly assistant! Keep your responses concise and helpful.';
+  'You are a friendly assistant! Keep your responses concise and helpful.\n\nWhen you need web information:\n- Prefer calling exaAnswer in nearly all cases.\n- Prefer exaSearch (and optionally exaCrawl for selected URLs) when the request is time-sensitive or explicitly about recency (e.g., contains words like "latest", "today", "now", "this week", mentions a very recent date, or asks for breaking/news updates).\n- If exaAnswer is insufficient or lacks recent context, fall back to exaSearch, then exaCrawl only to fetch contents you intend to cite.\n- Avoid redundant tool calls.';
 
 export interface RequestHints {
   latitude: Geo['latitude'];

@@ -30,12 +30,15 @@ import {
   fileUpload,
   masterPrompt,
   type MasterPrompt,
+  suggestedPrompt,
+  type SuggestedPrompt,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
 import { generateHashedPassword } from './utils';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { ChatSDKError } from '../errors';
+import { DEFAULT_SUGGESTED_PROMPTS } from '../constants';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -671,6 +674,78 @@ export async function getMasterPromptByUserId({
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get master prompt by user id',
+    );
+  }
+}
+
+export async function seedSuggestedPromptsForUser({
+  userId,
+}: {
+  userId: string;
+}) {
+  try {
+    await ensureUserExists({ id: userId });
+
+    const existing = await db
+      .select({ id: suggestedPrompt.id })
+      .from(suggestedPrompt)
+      .where(eq(suggestedPrompt.userId, userId));
+
+    if (existing.length > 0) return; // already seeded or user has prompts
+
+    await db.insert(suggestedPrompt).values(
+      DEFAULT_SUGGESTED_PROMPTS.map((text) => ({ text, userId })),
+    );
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to seed suggested prompts for user',
+    );
+  }
+}
+
+export async function getFourRandomSuggestedPromptsByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<Array<SuggestedPrompt>> {
+  try {
+    await ensureUserExists({ id: userId });
+
+    // Ensure there are prompts for this user; if not, seed defaults
+    const countRows = await db
+      .select({ count: count(suggestedPrompt.id) })
+      .from(suggestedPrompt)
+      .where(eq(suggestedPrompt.userId, userId));
+    const total = countRows?.[0]?.count ?? 0;
+
+    if (total === 0) {
+      await seedSuggestedPromptsForUser({ userId });
+    }
+
+    // Turso/libsql supports random() in SQL
+    const rows = await db
+      .select()
+      .from(suggestedPrompt)
+      .where(eq(suggestedPrompt.userId, userId))
+      .orderBy(sql`random()`)
+      .limit(4);
+
+    // Deduplicate by text just in case
+    const seen = new Set<string>();
+    const unique = [] as Array<SuggestedPrompt>;
+    for (const row of rows) {
+      if (!seen.has(row.text)) {
+        seen.add(row.text);
+        unique.push(row);
+      }
+      if (unique.length === 4) break;
+    }
+    return unique;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get suggested prompts',
     );
   }
 }

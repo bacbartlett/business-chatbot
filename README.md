@@ -46,6 +46,22 @@ Set the `OPENROUTER_API_KEY` environment variable in your `.env.local` (or proje
 OPENROUTER_API_KEY=your_key_here
 ```
 
+Optionally add attribution headers so your app shows up in OpenRouter analytics and to reduce anonymous request rejections:
+
+```bash
+OPENROUTER_SITE_URL=https://your-domain.example   # used for HTTP-Referer
+OPENROUTER_APP_NAME="Business Chatbot"           # used for X-Title
+```
+
+PDF parsing (optional, requires enabling plugin support in code):
+
+```bash
+# Enable OpenRouter file parser plugin and choose engine
+OPENROUTER_FILE_PARSER=true
+# Options: pdf-text (default), mistral-ocr, native
+OPENROUTER_PDF_ENGINE=pdf-text
+```
+
 You can change the specific model slugs used in `lib/ai/providers.ts` to suit your needs (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3.7-sonnet:thinking`, or `openrouter/auto`).
 
 ## Deploy Your Own
@@ -66,6 +82,14 @@ TURSO_AUTH_TOKEN=<your_db_token>
 It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env.local` file is all that is necessary.
 
 > Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
+
+### Exa (Context7) integration
+
+Set your Exa API key to enable search/crawling/answers tools:
+
+```bash
+EXA_API_KEY=your_exa_api_key
+```
 
 1. Install Vercel CLI: `npm i -g vercel`
 2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`

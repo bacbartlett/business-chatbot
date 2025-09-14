@@ -114,3 +114,21 @@ export function getTextFromMessage(message: ChatMessage): string {
     .map((part) => part.text)
     .join('');
 }
+
+export function serializeError(error: unknown) {
+  try {
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      };
+    }
+    if (typeof error === 'object' && error !== null) {
+      return JSON.parse(JSON.stringify(error));
+    }
+    return { message: String(error) };
+  } catch {
+    return { message: 'Unknown error' };
+  }
+}

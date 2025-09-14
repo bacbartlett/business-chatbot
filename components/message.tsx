@@ -27,6 +27,7 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { Sources, SourcesContent, SourcesTrigger, Source } from './elements/source';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -280,6 +281,43 @@ const PurePreviewMessage = ({
                   </Tool>
                 );
               }
+
+              // Exa tools: show clear feedback that the web is being searched
+              if (type === 'tool-exaSearch' || type === 'tool-exaCrawl' || type === 'tool-exaAnswer') {
+                const { toolCallId, state } = part as any;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type={type as any} state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <div className="p-4 text-xs text-muted-foreground flex items-center gap-2">
+                          <span className="animate-spin"><LoaderIcon /></span>
+                          <span>Searching the web…</span>
+                        </div>
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : type === 'tool-exaAnswer' ? (
+                              <ExaAnswerResult result={(part as any).output} />
+                            ) : type === 'tool-exaSearch' ? (
+                              <ExaSearchResults result={(part as any).output} />
+                            ) : (
+                              <ExaCrawlResults result={(part as any).output} />
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
             })}
 
             {!isReadonly && (
@@ -337,3 +375,110 @@ export const ThinkingMessage = () => {
     </motion.div>
   );
 };
+
+// Lightweight renderers for Exa tool outputs
+function ExaSearchResults({ result }: { result: any }) {
+  const items: Array<any> = Array.isArray(result?.results)
+    ? result.results
+    : Array.isArray(result)
+      ? result
+      : [];
+
+  if (!items.length) {
+    return (
+      <div className="text-xs text-muted-foreground">No search results.</div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <ul className="list-disc pl-5 space-y-1 text-sm">
+        {items.slice(0, 10).map((item, idx) => (
+          <li key={item.id ?? item.url ?? idx} className="break-words">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              {item.title || item.url}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <Sources>
+        <SourcesTrigger count={Math.min(items.length, 10)} />
+        <SourcesContent>
+          {items.slice(0, 10).map((item, idx) => (
+            <Source key={item.id ?? item.url ?? idx} href={item.url} title={item.title || item.url} />
+          ))}
+        </SourcesContent>
+      </Sources>
+    </div>
+  );
+}
+
+function ExaCrawlResults({ result }: { result: any }) {
+  const items: Array<any> = Array.isArray(result)
+    ? result
+    : Array.isArray(result?.results)
+      ? result.results
+      : [];
+
+  if (!items.length) {
+    return (
+      <div className="text-xs text-muted-foreground">No fetched content.</div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.slice(0, 5).map((item, idx) => (
+        <div key={item.id ?? item.url ?? idx} className="rounded border bg-background p-2 text-sm">
+          <a href={item.url} target="_blank" rel="noreferrer" className="font-medium underline">
+            {item.title || item.url}
+          </a>
+          {item.text ? (
+            <div className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
+              {typeof item.text === 'string' ? item.text.slice(0, 1200) : JSON.stringify(item.text).slice(0, 1200)}
+              {typeof item.text === 'string' && item.text.length > 1200 ? '…' : ''}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExaAnswerResult({ result }: { result: any }) {
+  const answer = result?.answer ?? result?.summary ?? null;
+  const sources: Array<any> = Array.isArray(result?.sources)
+    ? result.sources
+    : Array.isArray(result?.results)
+      ? result.results
+      : [];
+
+  return (
+    <div className="space-y-3">
+      {answer ? (
+        <div className="text-sm whitespace-pre-wrap">{answer}</div>
+      ) : (
+        <div className="text-xs text-muted-foreground">No answer returned.</div>
+      )}
+
+      {sources.length > 0 ? (
+        <Sources>
+          <SourcesTrigger count={Math.min(sources.length, 10)}>
+            <p className="font-medium">Citations</p>
+          </SourcesTrigger>
+          <SourcesContent>
+            {sources.slice(0, 10).map((s, idx) => (
+              <Source key={s.id ?? s.url ?? idx} href={s.url} title={s.title || s.url} />
+            ))}
+          </SourcesContent>
+        </Sources>
+      ) : null}
+    </div>
+  );
+}

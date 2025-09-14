@@ -25,6 +25,9 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
+import { exaAnswer } from '@/lib/ai/tools/exa-answer';
+import { exaSearch } from '@/lib/ai/tools/exa-search';
+import { exaCrawl } from '@/lib/ai/tools/exa-crawl';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -39,10 +42,17 @@ import { ChatSDKError } from '@/lib/errors';
 import type { ChatMessage } from '@/lib/types';
 import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
+import { serializeError } from '@/lib/utils';
 
 export const maxDuration = 60;
 
 let globalStreamContext: ResumableStreamContext | null = null;
+
+// Only enable tool-calling for models we know support the OpenAI-style tools schema on OpenRouter
+const TOOL_SUPPORTED_MODELS = new Set<string>([
+  'chat-model', // openai/gpt-4o
+  'model-gpt-5', // openai/gpt-5
+]);
 
 export function getStreamContext() {
   if (!globalStreamContext) {
@@ -217,6 +227,17 @@ export async function POST(request: Request) {
         }
       : undefined;
 
+    console.log('[Chat API] Incoming request', {
+      chatId: id,
+      userId,
+      selectedChatModel,
+      totalMessages: uiMessagesForProvider.length,
+      includesPdf,
+      pdfEngine,
+      enableFileParser,
+      providerOptions: Boolean(providerOptions),
+    });
+
     const { longitude, latitude, city, country } = geolocation(request);
 
     const requestHints: RequestHints = {
@@ -246,36 +267,56 @@ export async function POST(request: Request) {
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // Force default model for all requests
+        const effectiveModelId: ChatModel['id'] = 'chat-model';
+        const toolsEnabled = TOOL_SUPPORTED_MODELS.has(selectedChatModel);
         const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints, masterPrompt: master?.masterPrompt ?? null }),
+          model: myProvider.languageModel(effectiveModelId),
+          system: systemPrompt({ selectedChatModel: effectiveModelId, requestHints, masterPrompt: master?.masterPrompt ?? null }),
           messages: convertToModelMessages(uiMessagesForProvider),
           stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
+          experimental_activeTools: toolsEnabled
+            ? [
+                'getWeather',
+                'createDocument',
+                'updateDocument',
+                'requestSuggestions',
+                'exaAnswer',
+                'exaSearch',
+                'exaCrawl',
+              ]
+            : [],
           experimental_transform: smoothStream({ chunking: 'word' }),
           providerOptions,
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session: { user: { id: userId } } as any, dataStream }),
-            updateDocument: updateDocument({ session: { user: { id: userId } } as any, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session: { user: { id: userId } } as any,
-              dataStream,
-            }),
-          },
+          tools: toolsEnabled
+            ? {
+                getWeather,
+                createDocument: createDocument({ session: { user: { id: userId } } as any, dataStream }),
+                updateDocument: updateDocument({ session: { user: { id: userId } } as any, dataStream }),
+                requestSuggestions: requestSuggestions({
+                  session: { user: { id: userId } } as any,
+                  dataStream,
+                }),
+                exaAnswer,
+                exaSearch,
+                exaCrawl,
+              }
+            : undefined,
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
             functionId: 'stream-text',
           },
         });
+
+        result.response
+          .then((r: any) => {
+            try {
+              console.log('[Chat API] Provider response status', r?.status);
+            } catch {}
+          })
+          .catch((e: any) => {
+            console.error('[Chat API] Provider response error', serializeError(e));
+          });
 
         result.consumeStream();
 
@@ -299,6 +340,7 @@ export async function POST(request: Request) {
         });
       },
       onError: () => {
+        console.error('[Chat API] UI stream error');
         return 'Oops, an error occurred!';
       },
     });
@@ -319,7 +361,7 @@ export async function POST(request: Request) {
       return error.toResponse();
     }
 
-    console.error('Unhandled error in chat API:', error);
+    console.error('Unhandled error in chat API:', serializeError(error));
     return new ChatSDKError('offline:chat').toResponse();
   }
 }

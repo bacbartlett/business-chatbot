@@ -25,7 +25,7 @@ import { guestRegex } from '@/lib/constants';
 export function SidebarUserNav() {
   const router = useRouter();
   const { user: clerkUser, isSignedIn, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile } = useClerk();
   const { setTheme, resolvedTheme } = useTheme();
 
   const isGuest = false;
@@ -84,6 +84,27 @@ export function SidebarUserNav() {
             >
               {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>
+            {isSignedIn && (
+              <DropdownMenuItem
+                data-testid="user-nav-item-account-settings"
+                className="cursor-pointer"
+                onSelect={() => {
+                  if (!isLoaded) {
+                    toast({
+                      type: 'error',
+                      description:
+                        'Checking authentication status, please try again!',
+                    });
+
+                    return;
+                  }
+
+                  openUserProfile();
+                }}
+              >
+                Account Settings
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button

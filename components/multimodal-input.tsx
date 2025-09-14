@@ -324,7 +324,7 @@ function PureMultimodalInput({
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-            <ModelSelectorCompact selectedModelId={selectedModelId} />
+            {/* <ModelSelectorCompact selectedModelId={selectedModelId} /> */}
           </PromptInputTools>
           {status === 'submitted' ? (
             <StopButton stop={stop} setMessages={setMessages} />
