@@ -43,6 +43,7 @@ import type { ChatMessage } from '@/lib/types';
 import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { serializeError } from '@/lib/utils';
+import { runAssistant } from '@/lib/ai/run-assistant';
 
 export const maxDuration = 60;
 
@@ -270,6 +271,35 @@ export async function POST(request: Request) {
         // Force default model for all requests
         const effectiveModelId: ChatModel['id'] = 'chat-model';
         const toolsEnabled = TOOL_SUPPORTED_MODELS.has(selectedChatModel);
+
+        // Diagnostics-only background call to capture/log scratchpad content in development.
+        // This duplicates the generation for testing; it is disabled in production.
+        if (process.env.NODE_ENV !== 'production') {
+          try {
+            // Fire-and-forget; do not await to avoid blocking the streamed response
+            void runAssistant({
+              messages: convertToModelMessages(uiMessagesForProvider) as any,
+              selectedChatModel: effectiveModelId,
+              requestHints,
+              masterPrompt: master?.masterPrompt ?? null,
+            }).catch(() => {});
+          } catch {}
+        }
+        console.log('[Chat API] Starting streamText with tools', {
+          toolsEnabled,
+          activeTools: toolsEnabled
+            ? [
+                'getWeather',
+                'createDocument',
+                'updateDocument',
+                'requestSuggestions',
+                'exaAnswer',
+                'exaSearch',
+                'exaCrawl',
+              ]
+            : [],
+        });
+
         const result = streamText({
           model: myProvider.languageModel(effectiveModelId),
           system: systemPrompt({ selectedChatModel: effectiveModelId, requestHints, masterPrompt: master?.masterPrompt ?? null }),

@@ -27,9 +27,17 @@ export const exaCrawl = tool({
       return { error: 'EXA_API_KEY not configured' };
     }
     const input = urls && urls.length > 0 ? urls : results ?? [];
-    const res = await exa.getContents(input as any, typeof text === 'undefined' ? undefined : { text: text as any });
-    console.log('[exaCrawl] response:', res);
-    return res;
+    try {
+      console.log('[exaCrawl] request:', { inputCount: Array.isArray(input) ? input.length : 0, hasTextOption: typeof text !== 'undefined' });
+      const res = await exa.getContents(input as any, typeof text === 'undefined' ? undefined : { text: text as any });
+      console.log('[exaCrawl] response:', res);
+      return res;
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      const status = (error?.response && (error.response.status || error.response.statusCode)) || undefined;
+      console.warn('[exaCrawl] error:', { message, status });
+      return { error: 'Exa crawl failed', message, status } as any;
+    }
   },
 });
 

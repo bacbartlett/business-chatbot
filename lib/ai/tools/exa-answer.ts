@@ -19,6 +19,7 @@ export const exaAnswer = tool({
       return { error: 'EXA_API_KEY not configured' };
     }
     try {
+      console.log('[exaAnswer] request:', { query, includeText: !!includeText });
       const res = await exa.answer(query, { text: !!includeText });
       console.log('[exaAnswer] response:', res);
 
@@ -92,9 +93,12 @@ export const exaAnswer = tool({
         },
       };
     } catch (error) {
-      console.warn('[exaAnswer] error:', error);
+      const message = (error as any)?.message || String(error);
+      const status = ((error as any)?.response && (((error as any).response.status || (error as any).response.statusCode))) || undefined;
+      console.warn('[exaAnswer] error:', { message, status });
       // As a last resort, try the fallback path directly if answer failed
       try {
+        console.log('[exaAnswer][fallback-after-error] attempting search+crawl');
         const searchResults = await exa.search(query, { numResults: 5 });
         let contents: any = null;
         try {
@@ -115,7 +119,9 @@ export const exaAnswer = tool({
         };
       } catch (fallbackError) {
         console.warn('[exaAnswer][fallback-after-error] error:', fallbackError);
-        return { error: 'Exa operations failed' };
+        const fMessage = (fallbackError as any)?.message || String(fallbackError);
+        const fStatus = ((fallbackError as any)?.response && (((fallbackError as any).response.status || (fallbackError as any).response.statusCode))) || undefined;
+        return { error: 'Exa operations failed', message: fMessage, status: fStatus } as any;
       }
     }
   },

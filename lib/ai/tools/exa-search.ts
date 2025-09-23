@@ -17,14 +17,28 @@ export const exaSearch = tool({
     if (!exa) {
       return { error: 'EXA_API_KEY not configured' };
     }
-    const res = await exa.search(query, {
-      numResults,
-      includeDomains,
-      startPublishedDate,
-      endPublishedDate,
-    });
-    console.log('[exaSearch] response:', res);
-    return res;
+    try {
+      console.log('[exaSearch] request:', {
+        query,
+        numResults,
+        includeDomains,
+        startPublishedDate,
+        endPublishedDate,
+      });
+      const res = await exa.search(query, {
+        numResults,
+        includeDomains,
+        startPublishedDate,
+        endPublishedDate,
+      });
+      console.log('[exaSearch] response:', res);
+      return res;
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      const status = (error?.response && (error.response.status || error.response.statusCode)) || undefined;
+      console.warn('[exaSearch] error:', { message, status });
+      return { error: 'Exa search failed', message, status } as any;
+    }
   },
 });
 

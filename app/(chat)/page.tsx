@@ -5,11 +5,12 @@ import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { generateUUID } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const { userId } = await auth();
-  if (!userId) redirect('/login');
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId) return redirectToSignIn();
 
   const id = generateUUID();
 
