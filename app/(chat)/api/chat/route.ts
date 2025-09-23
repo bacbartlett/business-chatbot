@@ -51,7 +51,7 @@ let globalStreamContext: ResumableStreamContext | null = null;
 
 // Only enable tool-calling for models we know support the OpenAI-style tools schema on OpenRouter
 const TOOL_SUPPORTED_MODELS = new Set<string>([
-  'chat-model', // openai/gpt-4o
+  'chat-model', // x-ai/grok-4-fast:free
   'model-gpt-5', // openai/gpt-5
 ]);
 
@@ -289,10 +289,10 @@ export async function POST(request: Request) {
           toolsEnabled,
           activeTools: toolsEnabled
             ? [
-                'getWeather',
-                'createDocument',
-                'updateDocument',
-                'requestSuggestions',
+                // 'getWeather',
+                // 'createDocument',
+                // 'updateDocument',
+                // 'requestSuggestions',
                 'exaAnswer',
                 'exaSearch',
                 'exaCrawl',
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
           model: myProvider.languageModel(effectiveModelId),
           system: systemPrompt({ selectedChatModel: effectiveModelId, requestHints, masterPrompt: master?.masterPrompt ?? null }),
           messages: convertToModelMessages(uiMessagesForProvider),
-          stopWhen: stepCountIs(5),
+          stopWhen: stepCountIs(50),
           experimental_activeTools: toolsEnabled
             ? [
                 'getWeather',

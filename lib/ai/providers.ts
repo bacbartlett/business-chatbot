@@ -43,7 +43,7 @@ export const myProvider = useTestModels
       languageModels: {
         // Use OpenRouter models; adjust slugs as desired
         // Default chat model should support tools
-        'chat-model': openrouterClient('openai/gpt-5'),
+        'chat-model': openrouterClient('x-ai/grok-4-fast:free'),
         'chat-model-reasoning': wrapLanguageModel({
           model: openrouterClient('anthropic/claude-3.7-sonnet:thinking'),
           middleware: extractReasoningMiddleware({ tagName: 'think' }),

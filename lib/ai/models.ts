@@ -9,8 +9,8 @@ export interface ChatModel {
 export const chatModels: Array<ChatModel> = [
   {
     id: 'chat-model',
-    name: 'Default (GPT-5)',
-    description: 'Default chat model using OpenAI GPT-5 with tool support',
+    name: 'Default (Grok 4 Fast)',
+    description: 'Default chat model using xAI Grok 4 Fast via OpenRouter',
   },
   {
     id: 'chat-model-reasoning',

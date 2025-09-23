@@ -1,3 +1,4 @@
+import { ReactScan } from '@/components/react-scan';
 import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -71,6 +72,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <ReactScan />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
