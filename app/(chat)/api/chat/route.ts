@@ -45,7 +45,7 @@ import type { VisibilityType } from '@/components/visibility-selector';
 import { serializeError } from '@/lib/utils';
 import { runAssistant } from '@/lib/ai/run-assistant';
 
-export const maxDuration = 60;
+export const maxDuration = 600;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
