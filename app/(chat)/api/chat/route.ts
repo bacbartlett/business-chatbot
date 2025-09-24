@@ -3,6 +3,7 @@ import {
   createUIMessageStream,
   JsonToSseTransformStream,
   smoothStream,
+  stepCountIs,
   streamText,
 } from 'ai';
 import { auth, currentUser } from '@clerk/nextjs/server';
@@ -303,6 +304,7 @@ export async function POST(request: Request) {
           model: myProvider.languageModel(effectiveModelId),
           system: systemPrompt({ selectedChatModel: effectiveModelId, requestHints, masterPrompt: master?.masterPrompt ?? null }),
           messages: convertToModelMessages(uiMessagesForProvider),
+          stopWhen: stepCountIs(999),
           experimental_activeTools: toolsEnabled
             ? [
                 'getWeather',
